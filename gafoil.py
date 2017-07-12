@@ -18,7 +18,7 @@ def generation_step(parents):
 	lib.sort(key=getfirst)
 	score.sort()
 	new_parents =[]
-	for obj in lib[-30:]:
+	for obj in lib[-50:]:
 		new_parents.append(obj[1])
 	return new_parents, score[-1]
 

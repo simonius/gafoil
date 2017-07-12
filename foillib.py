@@ -11,20 +11,33 @@ def load_naca(num):
 	return naca
 
 def call_xfoil(comm_str):
-	quiet_flag= "" # "plop \n g \n \n"
-	comm_str = quiet_flag + comm_str + "\n \n \n \n \n q \n q \nq \n"
+	quiet_flag=   "plop \n g \n \n"
+	comm_str = quiet_flag + comm_str + "\n \n \n \n \n quit \n"
 	#print(comm_str)
-	os.system("echo \" " + comm_str + " \" | xfoil >xfoil.log 2> xfoilerror.log")
+	os.system("echo \" " + comm_str + " \" | ./xfoil >xfoil.log 2> xfoilerror.log")
 	#dell("xfoil_comms")
 	#print("xfoil ended")
 
-def call_xfoil_big(comm):
-	comm = comm + " \n \n \n q"
-	f = open("commsbuff", "w")
-	f.write(comm)
-	f.close()
-	os.system("xfoil < commsbuff > xfoil.log 2> xfoilerror.log")
-	os.system("rm commsbuff")
+def call_xfoil_mt(comm):
+	for i in range(len( comm)):
+		quiet_flag=   "plop \n g \n \n"
+		comm[i] = quiet_flag + comm[i]
+		comm[i] = comm[i] + " \n \n \n quit \n"
+	callstring = " "
+	commbuffname = []
+	for i in range(len(comm)):
+		commbuffname.append("commsbuff" + str(i))
+		f = open(commbuffname[i], "w")
+		f.write(comm[i])
+		f.close()
+		callstring = callstring + "./xfoil < " + commbuffname[i] + " > xfoil.log 2> xfoilerror.log  & \n "
+	callstring = callstring + " wait \n wait \n wait \n"
+	#print(callstring)
+	os.system(callstring)
+	#os.system("./xfoil < commsbuff > xfoil.log 2> xfoilerror.log")
+	for file in commbuffname:
+		dell(file)
+	#os.system("rm commsbuff")
 
 def save_naca(nacanumber, fname):
 	com = "naca " + nacanumber + "\n"
@@ -32,19 +45,23 @@ def save_naca(nacanumber, fname):
 	call_xfoil(com)
 
 def write_polars(filenames, polarnames, rey):
-	com =""
+	threads = 16
+	thr_coms = []
+	for t in range(threads):
+		thr_coms.append("")
 	for i in range(len(filenames)):
-		com = com + "load " + str(filenames[i]) +"\n"
-		com = com + "gdes \n cadd \n \n \n \n \n"
-		com = com + "panel \n"
-		com = com + "oper \n"
-		com = com + "VISC " + str(rey) + "\n"
+		t = i % threads
+		thr_coms[t] = thr_coms[t] + "load " + str(filenames[i]) +"\n"
+		thr_coms[t] = thr_coms[t] + "gdes \n cadd \n \n \n \n \n"
+		thr_coms[t] = thr_coms[t] + "panel \n"
+		thr_coms[t] = thr_coms[t] + "oper \n"
+		thr_coms[t] = thr_coms[t] + "VISC " + str(rey) + "\n"
 	#	com = com + "init \n"
-		com = com + "cli 0.5 \n"
-		com = com + "pacc \n" + str(polarnames[i]) + " \n \n"
-		com = com + "cseq 0.4 0.8 0.2 \n"
-		com = com + "pacc \n visc \n PDEL 1 \n \n \n"
-	call_xfoil_big(com)
+	#	com = com + "cli 0.5 \n"
+		thr_coms[t] = thr_coms[t] + "pacc \n" + str(polarnames[i]) + " \n \n"
+		thr_coms[t] = thr_coms[t] + "cseq 0.4 0.8 0.2 \n"
+		thr_coms[t] = thr_coms[t] + "pacc \n visc \n PDEL 1 \n \n \n"
+	call_xfoil_mt(thr_coms)
 
 def read_foil(filename):
 	points = []
@@ -110,14 +127,8 @@ def get_polars(foils, rey):
 		polarfilenames.append(polarfilename)
 		write_foil(filename, foil)
 		i = i + 1
-	subdivsf = []
-	subdivsp = []
-	parts = len(filenames) / 100
-	for i in range(parts):
-		subdivsf.append(filenames[100*i: 100*(i+1)])
-		subdivsp.append(polarfilenames[100*i: 100*(i+1)])
-	for i in range(parts):
-		write_polars(subdivsf[i], subdivsp[i], rey)
+
+	write_polars(filenames, polarfilenames, rey)
 
 	for polar in polarfilenames:
 		polars.append(read_polar(polar))
