@@ -23,20 +23,23 @@ def call_xfoil_mt(comm):
 		quiet_flag=   "plop \n g \n \n"
 		comm[i] = quiet_flag + comm[i]
 		comm[i] = comm[i] + " \n \n \n quit \n"
-	callstring = " "
+	callstring = "ulimit -t 48 \n"
 	commbuffname = []
 	for i in range(len(comm)):
 		commbuffname.append("commsbuff" + str(i))
 		f = open(commbuffname[i], "w")
 		f.write(comm[i])
 		f.close()
-		callstring = callstring + "./xfoil < " + commbuffname[i] + " > xfoil.log 2> xfoilerror.log  & \n "
+		callstring = callstring + "./xfoil < " + commbuffname[i] + " > /dev/null 2> xfoilerror.log  & \n "
 	callstring = callstring + " wait \n wait \n wait \n"
-	#print(callstring)
-	os.system(callstring)
+	f = open("callscr.sh", "w")
+	f.write(callstring)
+	f.close()
+	os.system("bash callscr.sh")
 	#os.system("./xfoil < commsbuff > xfoil.log 2> xfoilerror.log")
 	for file in commbuffname:
 		dell(file)
+	dell("callscr.sh")
 	#os.system("rm commsbuff")
 
 def save_naca(nacanumber, fname):
@@ -45,7 +48,7 @@ def save_naca(nacanumber, fname):
 	call_xfoil(com)
 
 def write_polars(filenames, polarnames, rey):
-	threads = 16
+	threads = len(filenames)
 	thr_coms = []
 	for t in range(threads):
 		thr_coms.append("")
@@ -56,10 +59,10 @@ def write_polars(filenames, polarnames, rey):
 		thr_coms[t] = thr_coms[t] + "panel \n"
 		thr_coms[t] = thr_coms[t] + "oper \n"
 		thr_coms[t] = thr_coms[t] + "VISC " + str(rey) + "\n"
-	#	com = com + "init \n"
-	#	com = com + "cli 0.5 \n"
+#		thr_coms[t] = thr_coms[t] + "init \n"
+		thr_coms[t] = thr_coms[t] + "iter 30 \n"
 		thr_coms[t] = thr_coms[t] + "pacc \n" + str(polarnames[i]) + " \n \n"
-		thr_coms[t] = thr_coms[t] + "cseq 0.4 0.8 0.2 \n"
+		thr_coms[t] = thr_coms[t] + "cseq 0.0 1.6 0.1 \n"
 		thr_coms[t] = thr_coms[t] + "pacc \n visc \n PDEL 1 \n \n \n"
 	call_xfoil_mt(thr_coms)
 

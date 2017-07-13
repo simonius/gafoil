@@ -1,5 +1,6 @@
 import numpy as np
 import foillib as fl
+from random import random
 
 def mean_rep(foil1, foil2):
 	child = 0.5*(foil1 + foil2)
@@ -30,4 +31,44 @@ def produce_children(foils):
 				children.append(ch1)
 			if len(ch2) == 160:
 				children.append(ch2)
-	return children
+	mods = []
+	for foil in children:
+		mods.append(linear_mod(foil))
+	children = children + mods
+	ret = []
+	for foil in children:
+		ret.append(check_foil(foil))
+	return ret
+
+
+def linear_mod(foil):
+	newfoil = []
+	a = random()-0.5
+	b = random()-0.5
+	a = a*1.0
+	b = b*1.0
+	b = b + 1
+	for point in foil:
+		mult = (point[0]-0.5) * a + b
+		if (mult < 0.2 or mult > 2):
+			print("linearmod error")
+		newpoint = [0, 0]
+		newpoint[0] = point[0]
+		newpoint[1] = point[1]*mult
+		newfoil.append(newpoint)
+	return np.array(newfoil)
+
+def check_foil(foil):
+	sup = 0.00001
+	inf = 0.00001
+	for point in foil:
+		if (sup < point[1]):
+			sup = point[1]
+		if (inf > point[1]):
+			inf = point[1]
+	max = abs(sup) + abs (inf)
+	if max < 0.13:
+		mult = 0.13/max
+		for point in foil:
+			point[1] = point[1] * mult
+	return foil
