@@ -60,13 +60,19 @@ def linear_mod(foil):
 
 def check_foil(foil):
 	sup = 0.00001
+	sup_point = 0
 	inf = 0.00001
+	i = 0
 	for point in foil:
 		if (sup < point[1]):
 			sup = point[1]
+			sup_point = i
 		if (inf > point[1]):
 			inf = point[1]
-	max = abs(sup) + abs (inf)
+		i = i + 1
+	if(inf < foil[sup_point][1]):
+		inf = foil[sup_point][1]
+	max = abs(sup) + abs(inf)
 	if max < 0.13:
 		mult = 0.13/max
 		for point in foil:

@@ -26,11 +26,14 @@ def generation_step(parents):
 
 def test():
 	foils = naca_parents()
-	new = optimize(foils, 5)
+	new = optimize(foils, 15)
 	polars = fl.get_polars(new, 1000000)
 	score = main_obj(polars)
+	score2 = sec_obj(polars)
 	index_min = np.argmin(score)
-	fl.write_foil("outfoil", new[index_min])
+	index_min2 = np.argmin(score2)
+	fl.write_foil("outfoil1.dat", new[index_min])
+	fl.write_foil("outfoil2.dat", new[index_min2])
 
 def optimize(start, n):
 	par = start
@@ -44,7 +47,7 @@ def naca_parents():
 	for i in range(4):
 		for k in range(4):
 			for j in range(3):
-				foils.append(fl.load_naca(str(k*3)+str(i*3)+str(10+j*4)))
+				foils.append(fl.load_naca(str(k*2)+str(i*2)+str(10+j*4)))
 	return foils
 
 def main_obj(polars):
@@ -64,11 +67,26 @@ def main_obj(polars):
 			score.append(10)
 	return score
 
+def sec_obj(polars, lowtr = 0.3):
+	score = []
+	for polar in polars:
+		if(len(polar)>14):
+			min = 0
+			for op in polar[0:14]:
+				if(check_op(op, lowtr = lowtr)):
+					min = 10
+				if(op[2] > min):
+					min = op[2]
+			score.append(min)
+		else:
+			score.append(10)
+	return score
+
 def getsecond(item):
 	return item[1]
 
-def check_op(op):
-	if (op[6] < 0.3 or op[5] < 0.3 or op[4]<-0.15):
+def check_op(op, lowtr = 0.3):
+	if (op[6] < lowtr or op[5] < 0.3 or op[4]<-0.15 or op[2] < 0.0005):
 		return 0.0
 	else:
 		return 1.0
@@ -100,6 +118,23 @@ def get_parents(foils):
 	lib.sort(key=getsecond)
 	libs.append(lib)
 
+	lib = []
+	ssc = sec_obj(polars)
+	i = 0
+	for ob in ssc:
+		lib.append([i,ob])
+		i = i + 1
+	lib.sort(key=getsecond)
+	libs.append(lib)
+
+	lib = []
+	tsc = sec_obj(polars, lowtr = 0.8)
+	i = 0
+	for ob in tsc:
+		lib.append([i, ob])
+		i = i + 1
+	lib.sort(key=getsecond)
+	libs.append(lib)
 
 	parentslist = []
 	for lib in libs:
